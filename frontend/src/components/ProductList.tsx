@@ -1,105 +1,189 @@
-import React, { useState } from "react";
-import { useProducts } from "../context/ProductContext";
-import { ProductForm } from "./ProductForm";
-import { Edit2, Trash2, Star, ThumbsUp } from "lucide-react";
+// ProductList.jsx
+import React, { useState, useEffect } from "react";
+import axios from "axios";
 
-export function ProductList() {
-  const { state, dispatch } = useProducts();
-  const [showForm, setShowForm] = useState(false);
-  const [editingProduct, setEditingProduct] = useState<null | any>(null);
+export const ProductList = () => {
+  const [products, setProducts] = useState([]);
+  const [formData, setFormData] = useState({
+    name: "",
+    price: "",
+    description: "",
+    status: "draft",
+    isRecommended: false,
+    isBestseller: false,
+  });
+  const [editingId, setEditingId] = useState(null);
 
-  const handleDelete = (id: string) => {
-    if (confirm("Are you sure you want to delete this product?")) {
-      dispatch({ type: "DELETE_PRODUCT", payload: id });
+  // Fetch all products
+  const fetchProducts = async () => {
+    try {
+      const response = await axios.get("http://localhost:3000/all");
+      setProducts(response.data);
+    } catch (error) {
+      console.error("Error fetching products:", error);
     }
   };
 
-  const handleEdit = (product: any) => {
-    setEditingProduct(product);
-    setShowForm(true);
+  useEffect(() => {
+    fetchProducts();
+  }, []);
+
+  // Handle form input changes
+  const handleInputChange = (e) => {
+    const { name, value, type, checked } = e.target;
+    setFormData((prev) => ({
+      ...prev,
+      [name]: type === "checkbox" ? checked : value,
+    }));
+  };
+
+  // Create new product
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    try {
+      if (editingId) {
+        await axios.patch(
+          `http://localhost:3000/products/${editingId}`,
+          formData
+        );
+      } else {
+        await axios.post("http://localhost:3000/add", formData);
+      }
+      fetchProducts();
+      setFormData({
+        name: "",
+        price: "",
+        description: "",
+        status: "draft",
+        isRecommended: false,
+        isBestseller: false,
+      });
+      setEditingId(null);
+    } catch (error) {
+      console.error("Error saving product:", error);
+    }
+  };
+
+  // Delete product
+  const handleDelete = async (id) => {
+    try {
+      await axios.delete(`http://localhost:3000/products/${id}`);
+      fetchProducts();
+    } catch (error) {
+      console.error("Error deleting product:", error);
+    }
+  };
+
+  // Set up edit mode
+  const handleEdit = (product) => {
+    setFormData(product);
+    setEditingId(product._id);
   };
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-3xl font-bold text-gray-900">Products</h1>
-        <button
-          onClick={() => {
-            setEditingProduct(null);
-            setShowForm(true);
-          }}
-          className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
-        >
-          Add Product
-        </button>
-      </div>
+    <div className="container mx-auto p-4">
+      <h2 className="text-2xl mb-4">
+        {editingId ? "Edit Product" : "Add New Product"}
+      </h2>
 
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-        {state.products.map((product) => (
-          <div
-            key={product.id}
-            className="bg-white rounded-lg shadow-md overflow-hidden"
+      <form onSubmit={handleSubmit} className="mb-8">
+        <div className="grid gap-4">
+          <input
+            type="text"
+            name="name"
+            value={formData.name}
+            onChange={handleInputChange}
+            placeholder="Product Name"
+            required
+            className="p-2 border rounded"
+          />
+
+          <input
+            type="number"
+            name="price"
+            value={formData.price}
+            onChange={handleInputChange}
+            placeholder="Price"
+            required
+            className="p-2 border rounded"
+          />
+
+          <textarea
+            name="description"
+            value={formData.description}
+            onChange={handleInputChange}
+            placeholder="Description"
+            required
+            className="p-2 border rounded"
+          />
+
+          <select
+            name="status"
+            value={formData.status}
+            onChange={handleInputChange}
+            className="p-2 border rounded"
           >
-            <div className="p-6">
-              <div className="flex justify-between items-start mb-4">
-                <h2 className="text-xl font-semibold text-gray-900">
-                  {product.name}
-                </h2>
-                <div className="flex space-x-2">
-                  {product.isBestseller && (
-                    <Star className="text-yellow-500" size={20} />
-                  )}
-                  {product.isRecommended && (
-                    <ThumbsUp className="text-blue-500" size={20} />
-                  )}
-                </div>
-              </div>
-              <p className="text-gray-600 mb-4">{product.description}</p>
-              <div className="flex justify-between items-center mb-4">
-                <span className="text-2xl font-bold text-gray-900">
-                  ${product.price.toFixed(2)}
-                </span>
-                <span
-                  className={`px-3 py-1 rounded-full text-sm ${
-                    product.status === "active"
-                      ? "bg-green-100 text-green-800"
-                      : product.status === "inactive"
-                      ? "bg-red-100 text-red-800"
-                      : "bg-gray-100 text-gray-800"
-                  }`}
-                >
-                  {product.status.charAt(0).toUpperCase() +
-                    product.status.slice(1)}
-                </span>
-              </div>
-              <div className="flex justify-end space-x-2">
-                <button
-                  onClick={() => handleEdit(product)}
-                  className="p-2 text-blue-600 hover:text-blue-800"
-                >
-                  <Edit2 size={20} />
-                </button>
-                <button
-                  onClick={() => handleDelete(product.id)}
-                  className="p-2 text-red-600 hover:text-red-800"
-                >
-                  <Trash2 size={20} />
-                </button>
-              </div>
+            <option value="draft">Draft</option>
+            <option value="active">Active</option>
+            <option value="inactive">Inactive</option>
+          </select>
+
+          <div>
+            <label className="mr-4">
+              <input
+                type="checkbox"
+                name="isRecommended"
+                checked={formData.isRecommended}
+                onChange={handleInputChange}
+              />
+              Recommended
+            </label>
+
+            <label>
+              <input
+                type="checkbox"
+                name="isBestseller"
+                checked={formData.isBestseller}
+                onChange={handleInputChange}
+              />
+              Bestseller
+            </label>
+          </div>
+
+          <button type="submit" className="bg-blue-500 text-white p-2 rounded">
+            {editingId ? "Update Product" : "Add Product"}
+          </button>
+        </div>
+      </form>
+
+      <div className="grid gap-4">
+        {products.map((product) => (
+          <div key={product._id} className="border p-4 rounded">
+            <h3 className="font-bold">{product.name}</h3>
+            <p>Price: ${product.price}</p>
+            <p>{product.description}</p>
+            <p>Status: {product.status}</p>
+            <p>
+              {product.isRecommended && "⭐ Recommended"}{" "}
+              {product.isBestseller && "🏆 Bestseller"}
+            </p>
+            <div className="mt-2">
+              <button
+                onClick={() => handleEdit(product)}
+                className="bg-yellow-500 text-white p-2 rounded mr-2"
+              >
+                Edit
+              </button>
+              <button
+                onClick={() => handleDelete(product._id)}
+                className="bg-red-500 text-white p-2 rounded"
+              >
+                Delete
+              </button>
             </div>
           </div>
         ))}
       </div>
-
-      {showForm && (
-        <ProductForm
-          product={editingProduct}
-          onClose={() => {
-            setShowForm(false);
-            setEditingProduct(null);
-          }}
-        />
-      )}
     </div>
   );
-}
+};
