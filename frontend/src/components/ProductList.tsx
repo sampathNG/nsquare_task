@@ -1,7 +1,5 @@
-// ProductList.jsx
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import axios from "axios";
-
 export const ProductList = () => {
   const [products, setProducts] = useState([]);
   const [formData, setFormData] = useState({
@@ -12,42 +10,41 @@ export const ProductList = () => {
     isRecommended: false,
     isBestseller: false,
   });
-  const [editingId, setEditingId] = useState(null);
-
-  // Fetch all products
+  const [editingId, setEditingId] = useState<string | null>(null);
   const fetchProducts = async () => {
     try {
-      const response = await axios.get("http://localhost:3000/all");
+      const response = await axios.get("https://nsquare-task.onrender.com/all");
       setProducts(response.data);
     } catch (error) {
       console.error("Error fetching products:", error);
     }
   };
-
   useEffect(() => {
     fetchProducts();
   }, []);
-
-  // Handle form input changes
-  const handleInputChange = (e) => {
-    const { name, value, type, checked } = e.target;
+  const handleInputChange = (
+    e: React.ChangeEvent<
+      HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement
+    >
+  ) => {
+    const { name, value, type } = e.target;
+    const checked =
+      type === "checkbox" ? (e.target as HTMLInputElement).checked : undefined;
     setFormData((prev) => ({
       ...prev,
       [name]: type === "checkbox" ? checked : value,
     }));
   };
-
-  // Create new product
-  const handleSubmit = async (e) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
       if (editingId) {
         await axios.patch(
-          `http://localhost:3000/products/${editingId}`,
+          `https://nsquare-task.onrender.com/products/${editingId}`,
           formData
         );
       } else {
-        await axios.post("http://localhost:3000/add", formData);
+        await axios.post("https://nsquare-task.onrender.com/add", formData);
       }
       fetchProducts();
       setFormData({
@@ -63,29 +60,23 @@ export const ProductList = () => {
       console.error("Error saving product:", error);
     }
   };
-
-  // Delete product
-  const handleDelete = async (id) => {
+  const handleDelete = async (id: string) => {
     try {
-      await axios.delete(`http://localhost:3000/products/${id}`);
+      await axios.delete(`https://nsquare-task.onrender.com/products/${id}`);
       fetchProducts();
     } catch (error) {
       console.error("Error deleting product:", error);
     }
   };
-
-  // Set up edit mode
-  const handleEdit = (product) => {
+  const handleEdit = (product: any) => {
     setFormData(product);
     setEditingId(product._id);
   };
-
   return (
     <div className="container mx-auto p-4">
       <h2 className="text-2xl mb-4">
         {editingId ? "Edit Product" : "Add New Product"}
       </h2>
-
       <form onSubmit={handleSubmit} className="mb-8">
         <div className="grid gap-4">
           <input
@@ -97,7 +88,6 @@ export const ProductList = () => {
             required
             className="p-2 border rounded"
           />
-
           <input
             type="number"
             name="price"
@@ -107,7 +97,6 @@ export const ProductList = () => {
             required
             className="p-2 border rounded"
           />
-
           <textarea
             name="description"
             value={formData.description}
@@ -116,7 +105,6 @@ export const ProductList = () => {
             required
             className="p-2 border rounded"
           />
-
           <select
             name="status"
             value={formData.status}
@@ -127,7 +115,6 @@ export const ProductList = () => {
             <option value="active">Active</option>
             <option value="inactive">Inactive</option>
           </select>
-
           <div>
             <label className="mr-4">
               <input
@@ -138,7 +125,6 @@ export const ProductList = () => {
               />
               Recommended
             </label>
-
             <label>
               <input
                 type="checkbox"
@@ -149,15 +135,13 @@ export const ProductList = () => {
               Bestseller
             </label>
           </div>
-
           <button type="submit" className="bg-blue-500 text-white p-2 rounded">
             {editingId ? "Update Product" : "Add Product"}
           </button>
         </div>
       </form>
-
       <div className="grid gap-4">
-        {products.map((product) => (
+        {products.map((product: any) => (
           <div key={product._id} className="border p-4 rounded">
             <h3 className="font-bold">{product.name}</h3>
             <p>Price: ${product.price}</p>
